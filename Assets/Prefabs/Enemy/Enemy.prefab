@@ -134,8 +134,13 @@ MonoBehaviour:
   _laserID: 0
   _enemyLaser: {fileID: 4486962607209192404, guid: 1c9bd25413fc1634cb338a45bf843faa,
     type: 3}
-  _enemyGun: {r: 0, g: 0, b: 0, a: 0}
+  _enemyGunColor: {r: 0, g: 0, b: 0, a: 0}
   _gunDelta: 0
+  _spawnPos:
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
 --- !u!61 &-2428283659808955392
 BoxCollider2D:
   m_ObjectHideFlags: 0

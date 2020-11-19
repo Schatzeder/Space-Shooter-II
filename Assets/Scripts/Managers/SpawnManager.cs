@@ -13,10 +13,12 @@ public class SpawnManager : MonoBehaviour
 
     private bool _stopSpawning = false;
 
+    private Player _player = null;
+
     // Start is called before the first frame update
     void Start()
     {
-        
+        _player = GameObject.Find("Player").GetComponent<Player>();
     }
 
     public void StartRoutines()
@@ -24,6 +26,7 @@ public class SpawnManager : MonoBehaviour
         StartCoroutine(SpawnEnemyRoutine());
         StartCoroutine(SpawnPowerupRoutine());
     }
+   
 
     private IEnumerator SpawnEnemyRoutine()
     {
@@ -41,6 +44,33 @@ public class SpawnManager : MonoBehaviour
             yield return new WaitForSeconds(spawnDelay);
         }
     }
+
+    public void HellStart()
+    {
+        //StartCoroutine(HellRoutine());
+    }
+
+    /*public IEnumerator HellRoutine()
+    {
+        float randomX = Random.Range(-8f, 8f);
+        float randomY = Random.Range(-6f, 9f);
+        _spawnPos[0] = new Vector3(randomX, 7, 0);
+        _spawnPos[1] = new Vector3(randomX, -6, 0);
+        _spawnPos[2] = new Vector3(11.5f, randomY, 0);
+        _spawnPos[3] = new Vector3(-11.5f, randomY, 0);
+
+        Debug.Log("Hell Routine started.");
+        while (_stopSpawning == false)
+        {
+            //CLAMP ENEMY POSITION ON ZED
+            //CLAMP ENEMY ROTATION TO ONE AXIS
+            GameObject newEnemy = Instantiate(_enemy, _spawnPos[Random.Range(0,4)], Quaternion.identity);
+            newEnemy.transform.parent = _enemyContainer.transform;
+            //newEnemy.transform.LookAt(_player.playerPos);
+            yield return new WaitForSeconds(0.3f);
+        }
+        yield return null;
+    }*/
 
     private IEnumerator SpawnPowerupRoutine()
     {
