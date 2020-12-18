@@ -5,8 +5,20 @@ using UnityEngine;
 public class Laser : MonoBehaviour
 {
     [SerializeField]
-    private float _laserSpeed = 8.0f;
+    private float _laserSpeed = 1.0f;
     public int _laserID = 0; //1 is friendly, 2 is enemy
+
+    [SerializeField]
+    private Vector3 _laserDirection;
+    private Vector3 _orbitCenter;
+
+    private void Start()
+    {
+        _orbitCenter = new Vector3(0, -9, 0);
+
+        //float ratio = Mathf.Atan(transform.rotation.z / Mathf.Deg2Rad);
+        //Debug.Log("ratio = " + ratio);
+    }
 
     // Update is called once per frame
     void Update()
@@ -15,14 +27,27 @@ public class Laser : MonoBehaviour
         {
             transform.Translate(Vector3.up * _laserSpeed * Time.deltaTime);
         }
+        else if (_laserID == 2)
+        {
+            transform.Translate(Vector3.down * _laserSpeed * Time.deltaTime);
+            //transform.position = (Vector3.MoveTowards(transform.position, _orbitCenter, 0.1f));
+        }
+
+        /*if (_laserID == 1)
+        {
+            transform.Translate(Vector3.up * _laserSpeed * Time.deltaTime);
+        }
         if (_laserID == 2)
         {
             transform.Translate(Vector3.down * _laserSpeed * Time.deltaTime);
-        }
+        }*/
+
+        //transform.Translate();
+
+        //transform.Translate(direction * _laserSpeed * Time.deltaTime);
 
 
-
-        if (transform.position.y > 8.0f || transform.position.y < -5.0f)
+        if (transform.position.y > 8.5f || transform.position.y < -6.5f || transform.position.x > 13f || transform.position.x < -13f)
         {
             Destroy(this.gameObject, 0.25f);
         }

@@ -11,19 +11,21 @@ public class Player : MonoBehaviour
     [SerializeField]
     private float _speed = 8.0f;
     [SerializeField]
-    private float _fireRate = 0.2f;
+    private float _fireRate = 0.15f;
     private float _canFire = -1f;
     [SerializeField]
     private float _warpCharge = 0f;
     [SerializeField]
     private float _warpChargeFill = 0f;
+    private float _univSpeed = 90f;
 
     [SerializeField]
     private int _playerHealth = 3;
+    [SerializeField]
     private int _shieldValue = 0;
     [SerializeField]
-    private int _ammoValue = 15;
-    int _quickInt = 2;
+    private int _ammoValue = 150;
+    //int _quickInt = 2;
 
     [SerializeField]
     private bool _tripleShotActive = false;
@@ -41,8 +43,6 @@ public class Player : MonoBehaviour
     [SerializeField]
     private GameObject _laserContainer = null;
     [SerializeField]
-    private GameObject _playerShield = null;
-    [SerializeField]
     private GameObject _thruster = null;
     [SerializeField]
     private GameObject[] _playerHurtVisual = null;
@@ -55,39 +55,57 @@ public class Player : MonoBehaviour
     private GameObject _warpShieldVisual = null;
     [SerializeField]
     private GameObject _warpDemo = null;
+    [SerializeField]
+    private GameObject _pullRadius = null;
 
     private Image _warpChargeImage = null;
     private Color _warpChargingColor = new Color(0.2031f, 0.2893f, 0.7830f, 1f);
     private Color _warpReadyColor = new Color(0, 1, 0.2765f, 1);
 
+    [SerializeField]
+    private SpriteRenderer _playerShieldVisual = null;
     private SpriteRenderer _playerSprite = null;
     private AudioSource _playerAudioSource = null;
     [SerializeField]
     private AudioClip _explosionClip = null;
     [SerializeField]
     private AudioClip _warpUpClip = null;
+    [SerializeField]
+    private AudioClip _shieldHitClip = null;
 
     [SerializeField]
     public Vector3 playerPos;
+
+    private BoxCollider2D _playerCol = null;
 
     /*[SerializeField]
     private PostProcessVolume _postProcessVolume = null;*/
 
     private SpawnManager _spawnManager;
     private UIManager _uiManager;
-    [SerializeField]
     private CameraController _camera;
+
+    //TESTING
+    [SerializeField]
+    private GameObject _enemyToAimAt = null;
+
+    //BUGS
+        //Lasers need to not be a child of Enemy, because they move along with the Enemy that way instead of independently.
+            //Consider Objects folder for all lasers to be inside of
 
 
     // Start is called before the first frame update
     void Start()
     {
-        transform.position = new Vector3(0, 0, 0);
+
+        //BRING THIS BACK
+        //transform.position = new Vector3(0, 0, 0);
 
         _spawnManager = GameObject.Find("Spawn_Manager").GetComponent<SpawnManager>();
         _uiManager = GameObject.Find("Canvas").GetComponent<UIManager>();
         _camera = GameObject.Find("Main Camera").GetComponent<CameraController>();
 
+        _playerCol = GetComponent<BoxCollider2D>();
         _playerSprite = GetComponent<SpriteRenderer>();
         _playerAudioSource = GetComponent<AudioSource>();
 
@@ -111,17 +129,32 @@ public class Player : MonoBehaviour
     {
         CalculateMovement();
         ThrusterSwitch();
-        ChargeWarp();
-        WarpDemo();
+        WarpMeter();
+        //WarpDemo();
+        //AimAtEnemy();
         //HellDemo();
         playerPos = this.transform.position;
 
-        if (Input.GetKeyDown(KeyCode.Space) && Time.time > _canFire)
+        if (Input.GetKeyDown(KeyCode.Space) && Time.time > _canFire && _playerAlive == true)
         {
             //Set laser cooldown
             _canFire = Time.time + _fireRate;
             FireLaser();
         }
+    }
+
+    private void AimAtEnemy()
+    {      
+        ////////////WORKING 2D ROTATE-TOWARDS SCRIPT////////////
+        //Store Enemy & Players position for readability; store difference between player and target on x, y axes; find relevant angle via Atan2; set target rotation, add offset
+        Vector3 target = _enemyToAimAt.transform.position;
+        Vector3 player = this.transform.position;
+        float xDiff = player.x - target.x;
+        float yDiff = player.y - target.y;
+        float angleA = Mathf.Atan2(yDiff, xDiff) * Mathf.Rad2Deg;
+
+        Quaternion targetRotation = Quaternion.Euler(new Vector3(0, 0, angleA + 90));
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, _univSpeed * Time.deltaTime);
     }
 
     void CalculateMovement()
@@ -147,6 +180,18 @@ public class Player : MonoBehaviour
                 transform.position = new Vector3(10.5f, transform.position.y, 0);
             }
 
+            //Pull powerups in
+            if (_warpCharge > 0 && Input.GetKey(KeyCode.LeftControl))
+            {
+                _pullRadius.SetActive(true);
+                ChangeWarp(-0.006f);
+            }
+            else
+            {
+                _pullRadius.SetActive(false);
+            }
+
+            //Use warp
             if (_warpReady && Input.GetKeyDown(KeyCode.LeftShift))
             {
                 StartCoroutine(WarpMethod(horizontalInput));
@@ -175,6 +220,7 @@ public class Player : MonoBehaviour
     {
         if (xDirection != 0)
         {
+            _warpCharge = 0f;
             WarpDown();
             _damageImmune = true;
             _warpShieldVisual.SetActive(true);
@@ -213,7 +259,7 @@ public class Player : MonoBehaviour
         _warpChargeImage.color = _warpChargingColor;
         _warpChargeText.color = Color.grey;
         _warpChargeText.text = ("WARP DRIVE");
-        _warpCharge = 0f;
+        //_warpCharge = 0;
     }
 
     void ThrusterSwitch()
@@ -232,27 +278,29 @@ public class Player : MonoBehaviour
         }
     }
 
-    void ChargeWarp()
+    void WarpMeter()
     {
         if ((Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0) && _warpReady == false && _warpCharge <= 2f)
         {
-            _warpCharge += 0.01f;
-            _warpChargeFill = (_warpCharge / 2);
-            _warpChargeImage.fillAmount = _warpChargeFill;
-
-            //Bar fills via Image/Fill Amount
-            //Bar changes color to Green on ready
-            //Powerup noise on full
-            //Text changes to bold white and says READY when full
-
-            //Text changes to regular grey and deletes READY on cast
-            //Warp noise on cast
-            //Bar depletes and changes back to blue on cast
+            //_warpCharge += 0.005f;
+            ChangeWarp(0.005f);
         }
+    }
+
+    void ChangeWarp(float warpDelta)
+    {
+        _warpCharge += warpDelta;
+        _warpCharge = Mathf.Clamp(_warpCharge, 0, 2f);
+        _warpChargeFill = (_warpCharge / 2);
+        _warpChargeImage.fillAmount = _warpChargeFill;
 
         if (_warpChargeFill >= 1f && _warpReady == false)
         {
             WarpUp();
+        }
+        else if (_warpChargeFill < 1f)
+        {
+            WarpDown();
         }
     }
 
@@ -264,7 +312,6 @@ public class Player : MonoBehaviour
             {
                 GameObject newLaser = Instantiate(_tripleShotPrefab, transform.position, Quaternion.identity);
                 newLaser.transform.parent = _laserContainer.transform;
-                //subtract 3 lasers
                 AmmoChange(-3);
             }
             else
@@ -272,7 +319,6 @@ public class Player : MonoBehaviour
                 GameObject newLaser = Instantiate(_laserPrefab, transform.position + new Vector3(0, 1.0f, 0), Quaternion.identity);
                 newLaser.transform.parent = _laserContainer.transform;
                 newLaser.GetComponent<Laser>()._laserID = 1;
-                //subtract 1 laser
                 AmmoChange(-1);
             }
         }
@@ -280,18 +326,12 @@ public class Player : MonoBehaviour
 
     public void AmmoChange(int change)
     {
-        //Need recharge ammo option
-        _ammoValue += change;
-        _ammoValue = Mathf.Clamp(_ammoValue, 0, 15);
-        /*if (_ammoValue > 15)
+        for (int i = Mathf.Abs(change); i > 0; i--)
         {
-            _ammoValue = 15;
+            _ammoValue += (Mathf.Abs(change) / change);
+            _ammoValue = Mathf.Clamp(_ammoValue, 0, 150);
+            _uiManager.UpdateAmmoVisual(_ammoValue);
         }
-        else if (_ammoValue < 0)
-        {
-            _ammoValue = 0;
-        }*/
-        _uiManager.UpdateAmmoVisual(_ammoValue);
     }
 
     public void Damage()
@@ -300,48 +340,44 @@ public class Player : MonoBehaviour
         {
             _shieldValue--;
             _uiManager.UpdateShieldVisual(_shieldValue);
+            _playerShieldVisual.color -= new Color(0, 0, 0, 1/3f);
+            _playerAudioSource.clip = _shieldHitClip;
+            _playerAudioSource.Play();
+
             if (_shieldValue == 0)
             {
                 _shieldActive = false;
-                _playerShield.SetActive(false);
+                //_playerShield.SetActive(false);
+                //_playerShieldVisual.enabled = false;
             }
         }
         else if (_shieldActive == false && _damageImmune == false)
         {
             UpdatePlayerHealth(-1);
             _camera.CameraShake();
-            //_camera.CameraShake(_quickInt);
-            //_quickInt--;
-            /*
-            _playerHealth--;
-            _uiManager.UpdateLifeSprite(_playerHealth);
-            _playerHurtVisual[Random.Range(0, 2)].SetActive(true);
-
-            if (_playerHealth == 1)
-            {
-                _playerHurtVisual[0].SetActive(true);
-                _playerHurtVisual[1].SetActive(true);
-            }
-            if (_playerHealth < 1)
-            {
-                StartCoroutine(PlayerDeath());
-            }
-            */
+        }
+        else if (_damageImmune == true)
+        {
+            _uiManager.UpdateScore(20);
         }
     }
 
     private IEnumerator PlayerDeath()
     {
-        _spawnManager.OnPlayerDeath();
-        _playerAlive = false;
-        _onDeathExplosion.SetActive(true);
-        yield return new WaitForSeconds(0.65f);
-        _uiManager.GameOverScreen();
         _playerAudioSource.clip = _explosionClip;
         _playerAudioSource.Play();
-        _playerSprite.enabled = !_playerSprite.enabled;
+        _spawnManager.OnPlayerDeath();
+        _playerAlive = false;
+        _playerCol.enabled = false;
+        _thruster.SetActive(false);
+        _onDeathExplosion.SetActive(true);
+        yield return new WaitForSeconds(0.2f); //Wait a moment before turning damage visual off
         _playerHurtVisual[0].SetActive(false);
         _playerHurtVisual[1].SetActive(false);
+        yield return new WaitForSeconds(0.3f); //Wait a moment before displaying GameOverScreen
+        _uiManager.GameOverScreen();
+        _playerAudioSource.Play();
+        _playerSprite.enabled = false;
         
         Destroy(this.gameObject, 2f);
     }
@@ -374,10 +410,11 @@ public class Player : MonoBehaviour
 
     public void ShieldActivate()
     {
+        float _shieldDelta = (3f - _shieldValue) / 3f;
         _shieldValue = 3;
         _shieldActive = true;
         _uiManager.UpdateShieldVisual(_shieldValue);
-        _playerShield.SetActive(true);
+        _playerShieldVisual.color += new Color(0, 0, 0, _shieldDelta); //Add full Alpha
     }
 
     public void UpdatePlayerHealth(int change)

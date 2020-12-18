@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System;
 
 public class UIManager : MonoBehaviour
 {
@@ -24,8 +25,12 @@ public class UIManager : MonoBehaviour
     private Sprite[] _lifeSprites = null;
     [SerializeField]
     private GameObject[] _shieldVisual = null;
-    [SerializeField]
+    [SerializeField] //DEBUG
     private GameObject[] _ammoVisual = null;
+    [SerializeField] //DEBUG
+    private Image[] _ammoVisualImage = null;
+    [SerializeField]
+    private GameObject _ammoContainer = null;
 
     [SerializeField]
     private Image _lifeDisplay = null;
@@ -33,23 +38,13 @@ public class UIManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        AssignAmmo();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (_gameOver == true)
-        {
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                SceneManager.LoadScene(1);
-            }
-            if (Input.GetKeyDown(KeyCode.Q))
-            {
-                SceneManager.LoadScene(0);
-            }
-        }
+        MenuInputs();
     }
 
     public void UpdateScore(int points)
@@ -74,9 +69,6 @@ public class UIManager : MonoBehaviour
             {
                 _shieldVisual[i-1].SetActive(true);
             }
-            /*_shieldVisual[0].SetActive(true);
-            _shieldVisual[1].SetActive(true);
-            _shieldVisual[2].SetActive(true);*/
         }
         if (value <= 2)
         {
@@ -84,28 +76,93 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private void AssignAmmo()
+    {
+        _ammoContainer = GameObject.Find("Ammo_Container");
+        //Assigns the length of an Array    IMPORTANT: REQUIRES "using System;"
+        Array.Resize(ref _ammoVisual, _ammoContainer.transform.childCount);
+        Array.Resize(ref _ammoVisualImage, _ammoContainer.transform.childCount);
+        //_ammoVisual = new GameObject[_ammoContainer.transform.childCount];
+
+        if (_ammoContainer == null)
+        {
+            Debug.Log("_ammoContainer is null");
+        }
+
+        for (int i = _ammoContainer.transform.childCount - 1; i >= 0; i--)
+        {
+            //Transform child = _ammoContainer.transform.GetChild(i);
+            Image child = _ammoContainer.transform.GetChild(i).GetComponent<Image>();
+            //_ammoVisual[i] = child.gameObject;
+            _ammoVisualImage[i] = child;
+        }
+    }
+
     public void UpdateAmmoVisual(int ammo)
     {
-        for (int i = ammo; i < 15; i++)
+        //DIVIDE AMMO BY 15
+        //WHOLE NUMBER MEANS LASER OBJECT
+        //DECIMAL MEANS FILL VALUE
+
+        if (ammo == 150)
         {
-            _ammoVisual[i].SetActive(false);
-        }
-        if (ammo == 15)
-        {
-            _lowAmmo = false;
-            for (int i = ammo; i > 0; i--)
-            {
-                _ammoVisual[i-1].SetActive(true);
-            }
-        }
-        if (ammo == 0)
-        {
-            _lowAmmo = true;
-            StartCoroutine(AmmoFlickerText());
+            _ammoVisualImage[14].fillAmount = 1.0f;
         }
         else
         {
-            _lowAmmo = false;
+            int ammoInt = (ammo) / 10; //ammoInt tells me that every 10 shots, I need to change which AmmoVisual I'm adjusting        
+            float ammoFloat = (ammo - (ammoInt * 10f)) / 10f; //ammoFloat tells me the Fill Amount I should be changing each AmmoVisual.Image to
+
+            _ammoVisualImage[ammoInt].fillAmount = ammoFloat;
+
+            if (ammoFloat == 0f && ammo != 0)
+            {   //Ensures that, on denominations of 10 Ammo, both relevant _ammoVisualImages are adjusted
+                _ammoVisualImage[ammoInt - 1].fillAmount = 1f;
+            }
+
+            //Debug.Log("Ammo = " + ammo);
+            //Debug.Log("AmmoInt = " + ammoInt);
+            //Debug.Log("AmmoFloat = " + ammoFloat);
+        }
+    }
+
+    /*
+for (int i = ammo; i < 15; i++)
+{
+    _ammoVisual[i].SetActive(false);
+}
+if (ammo == 15)
+{
+    _lowAmmo = false;
+    for (int i = ammo; i > 0; i--)
+    {
+        _ammoVisual[i - 1].SetActive(true);
+    }
+}
+
+if (ammo == 0)
+{
+    _lowAmmo = true;
+    StartCoroutine(AmmoFlickerText());
+}
+else
+{
+    _lowAmmo = false;
+}
+*/
+
+    private void MenuInputs()
+    {
+        if (_gameOver == true)
+        {
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                SceneManager.LoadScene(1);
+            }
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                SceneManager.LoadScene(0);
+            }
         }
     }
 

@@ -12,6 +12,15 @@ public class Asteroid : MonoBehaviour
 
     private SpawnManager _spawnManager = null;
 
+    public bool _asteroidBool;
+
+    public void AsteroidMethod()
+    {
+
+    }
+
+
+
     // Start is called before the first frame update
     void Start()
     {
